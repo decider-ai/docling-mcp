@@ -79,7 +79,6 @@ mellea = [
 
 [dependency-groups]
 dev = [
-    "mlx-vlm>=0.3.3",
     "mypy~=1.11",
     "pre-commit-uv~=4.1",
     "pytest~=8.3",
@@ -88,6 +87,9 @@ dev = [
     "pytest-cov>=6.1.1",
     "python-semantic-release~=7.32",
     "ruff>=0.9.6",
+]
+apple-dev = [
+    "mlx-vlm>=0.3.3",
 ]
 examples = [
     "ipykernel~=6.29",

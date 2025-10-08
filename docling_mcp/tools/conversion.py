@@ -4,21 +4,29 @@ import gc
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, cast
 
-from docling.backend.pypdfium2_backend import PyPdfiumDocumentBackend
-from docling.datamodel import vlm_model_specs
-from docling.pipeline.vlm_pipeline import VlmPipeline
 from mcp.server.fastmcp import Context
 from mcp.shared.exceptions import McpError
 from mcp.types import INTERNAL_ERROR, ErrorData, ToolAnnotations
 from pydantic import Field
 
+from docling.backend.pypdfium2_backend import PyPdfiumDocumentBackend
+from docling.datamodel import vlm_model_specs
 from docling.datamodel.base_models import InputFormat
 from docling.datamodel.pipeline_options import (
-    PdfPipelineOptions, granite_picture_description, VlmPipelineOptions
+    PdfPipelineOptions,
+    PictureDescriptionVlmOptions,
+    VlmPipelineOptions,
+    granite_picture_description,
 )
-from docling.document_converter import DocumentConverter, FormatOption, PdfFormatOption, ImageFormatOption
+from docling.document_converter import (
+    DocumentConverter,
+    FormatOption,
+    ImageFormatOption,
+    PdfFormatOption,
+)
+from docling.pipeline.vlm_pipeline import VlmPipeline
 from docling_core.types.doc.document import (
     ContentLayer,
 )
@@ -96,9 +104,11 @@ def _get_converter() -> DocumentConverter:
         do_table_structure=True,
         do_picture_description=True,
     )
-    pipeline_options.picture_description_options.prompt = (
-        "Always describe the image in three sentences. Be consise and accurate."
-    )
+
+    cast(
+        PictureDescriptionVlmOptions, pipeline_options.picture_description_options
+    ).prompt = "Always describe the image in three sentences. Be consise and accurate."
+
     pipeline_options.table_structure_options.do_cell_matching = True
 
     vlm_opts = VlmPipelineOptions(
@@ -110,13 +120,12 @@ def _get_converter() -> DocumentConverter:
 
     format_options: dict[InputFormat, FormatOption] = {
         InputFormat.PDF: PdfFormatOption(
-            pipeline_options=pipeline_options,
-            backend=PyPdfiumDocumentBackend
+            pipeline_options=pipeline_options, backend=PyPdfiumDocumentBackend
         ),
         InputFormat.IMAGE: ImageFormatOption(
-                pipeline_cls=VlmPipeline,
-                pipeline_options=vlm_opts,
-            ),
+            pipeline_cls=VlmPipeline,
+            pipeline_options=vlm_opts,
+        ),
     }
 
     logger.info(f"Creating DocumentConverter with format_options: {format_options}")

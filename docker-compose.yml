@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  docling-mcp:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: docling-mcp-server
+    ports:
+      - "8000:8000"
+    environment:
+      - PYTHONUNBUFFERED=1
+    networks:
+      - mcp-network
+
+  mcp-inspector:
+    build:
+      context: .
+      dockerfile: Dockerfile.inspector
+    container_name: mcp-inspector
+    ports:
+      - "6274:6274"
+      - "6277:6277"
+    restart: unless-stopped
+    depends_on:
+      - docling-mcp
+    networks:
+      - mcp-network
+
+networks:
+  mcp-network:
+    driver: bridge

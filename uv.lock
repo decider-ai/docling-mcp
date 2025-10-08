@@ -848,8 +848,10 @@ smolagents = [
 ]
 
 [package.dev-dependencies]
-dev = [
+apple-dev = [
     { name = "mlx-vlm" },
+]
+dev = [
     { name = "mypy" },
     { name = "pre-commit-uv" },
     { name = "pytest" },
@@ -894,8 +896,8 @@ requires-dist = [
 provides-extras = ["llama-index-rag", "llama-stack", "smolagents", "mellea"]
 
 [package.metadata.requires-dev]
+apple-dev = [{ name = "mlx-vlm", specifier = ">=0.3.3" }]
 dev = [
-    { name = "mlx-vlm", specifier = ">=0.3.3" },
     { name = "mypy", specifier = "~=1.11" },
     { name = "pre-commit-uv", specifier = "~=4.1" },
     { name = "pytest", specifier = "~=8.3" },
