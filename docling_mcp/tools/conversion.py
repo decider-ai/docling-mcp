@@ -112,8 +112,9 @@ def _get_converter() -> DocumentConverter:
     pipeline_options.table_structure_options.do_cell_matching = True
 
     vlm_opts = VlmPipelineOptions(
-        # TODO: Before deploy remove _MLX ending
-        vlm_options=vlm_model_specs.GRANITEDOCLING_MLX,
+        # For apple silicon use GRANITEDOCLING_MLX
+        # vlm_options=vlm_model_specs.GRANITEDOCLING_MLX,
+        vlm_options=vlm_model_specs.GRANITEDOCLING_TRANSFORMERS,
         images_scale=2.0,
     )
     pipeline_options.generate_page_images = settings.keep_images
