@@ -42,7 +42,7 @@ classifiers = [
 ]
 requires-python = ">=3.10"
 dependencies = [
-    "docling~=2.25",
+    "docling~=2.54.0",
     "httpx>=0.28.1",
     "mcp[cli]>=1.9.4",
     "mellea",
@@ -87,6 +87,9 @@ dev = [
     "pytest-cov>=6.1.1",
     "python-semantic-release~=7.32",
     "ruff>=0.9.6",
+]
+apple-dev = [
+    "mlx-vlm>=0.3.3",
 ]
 examples = [
     "ipykernel~=6.29",

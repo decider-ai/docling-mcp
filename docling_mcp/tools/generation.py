@@ -3,7 +3,7 @@
 import uuid
 from dataclasses import dataclass
 from io import BytesIO
-from typing import Annotated
+from typing import Annotated, Any
 
 from mcp.server.fastmcp import Image as MCPImage
 from mcp.types import ToolAnnotations
@@ -117,6 +117,48 @@ def export_docling_document_to_markdown(
         markdown = markdown[:max_size]
 
     return ExportDocumentMarkdownOutput(document_key, markdown)
+
+
+@dataclass
+class ExportDocumentMarkdownJsonOutput:
+    """Output of the export_docling_document_to_json tool."""
+
+    document_key: Annotated[
+        str,
+        Field(description="The unique identifier of the document in the local cache."),
+    ]
+    document_data: Annotated[
+        dict[str, Any],
+        Field(description="The representation of the document in json format."),
+    ]
+
+
+@mcp.tool(
+    title="Export Docling document to json format",
+    annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False),
+)
+def export_docling_document_to_json(
+    document_key: Annotated[
+        str,
+        Field(description="The unique identifier of the document in the local cache."),
+    ],
+) -> ExportDocumentMarkdownJsonOutput:
+    """Export a document from the local document cache to json format.
+
+    This tool converts a Docling document that exists in the local cache into
+    a markdown formatted string, which can be used for display or further processing.
+    """
+    if document_key not in local_document_cache:
+        doc_keys = ", ".join(local_document_cache.keys())
+        raise ValueError(
+            f"document-key: {document_key} is not found. Existing document-keys are: {doc_keys}"
+        )
+
+    document = local_document_cache[document_key]
+
+    return ExportDocumentMarkdownJsonOutput(
+        document_key, document_data=document.export_to_dict()
+    )
 
 
 @dataclass

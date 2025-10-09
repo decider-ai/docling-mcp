@@ -183,3 +183,5 @@ cython_debug/
 
 # Milvus local databases
 *.db
+
+.idea/

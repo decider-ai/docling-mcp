@@ -4,18 +4,29 @@ import gc
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, cast
 
 from mcp.server.fastmcp import Context
 from mcp.shared.exceptions import McpError
 from mcp.types import INTERNAL_ERROR, ErrorData, ToolAnnotations
 from pydantic import Field
 
+from docling.backend.pypdfium2_backend import PyPdfiumDocumentBackend
+from docling.datamodel import vlm_model_specs
 from docling.datamodel.base_models import InputFormat
 from docling.datamodel.pipeline_options import (
     PdfPipelineOptions,
+    PictureDescriptionVlmOptions,
+    VlmPipelineOptions,
+    granite_picture_description,
 )
-from docling.document_converter import DocumentConverter, FormatOption, PdfFormatOption
+from docling.document_converter import (
+    DocumentConverter,
+    FormatOption,
+    ImageFormatOption,
+    PdfFormatOption,
+)
+from docling.pipeline.vlm_pipeline import VlmPipeline
 from docling_core.types.doc.document import (
     ContentLayer,
 )
@@ -86,13 +97,36 @@ class ConvertDocumentOutput:
 
 @lru_cache
 def _get_converter() -> DocumentConverter:
-    pipeline_options = PdfPipelineOptions()
-    # pipeline_options.do_ocr = False  # Skip OCR for faster processing (enable for scanned docs)
+    pipeline_options = PdfPipelineOptions(
+        generate_picture_images=True,
+        picture_description_options=granite_picture_description,
+        do_ocr=True,
+        do_table_structure=True,
+        do_picture_description=True,
+    )
+
+    cast(
+        PictureDescriptionVlmOptions, pipeline_options.picture_description_options
+    ).prompt = "Always describe the image in three sentences. Be consise and accurate."
+
+    pipeline_options.table_structure_options.do_cell_matching = True
+
+    vlm_opts = VlmPipelineOptions(
+        # For apple silicon use GRANITEDOCLING_MLX
+        # vlm_options=vlm_model_specs.GRANITEDOCLING_MLX,
+        vlm_options=vlm_model_specs.GRANITEDOCLING_TRANSFORMERS,
+        images_scale=2.0,
+    )
     pipeline_options.generate_page_images = settings.keep_images
 
     format_options: dict[InputFormat, FormatOption] = {
-        InputFormat.PDF: PdfFormatOption(pipeline_options=pipeline_options),
-        InputFormat.IMAGE: PdfFormatOption(pipeline_options=pipeline_options),
+        InputFormat.PDF: PdfFormatOption(
+            pipeline_options=pipeline_options, backend=PyPdfiumDocumentBackend
+        ),
+        InputFormat.IMAGE: ImageFormatOption(
+            pipeline_cls=VlmPipeline,
+            pipeline_options=vlm_opts,
+        ),
     }
 
     logger.info(f"Creating DocumentConverter with format_options: {format_options}")

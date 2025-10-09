@@ -1,0 +1,15 @@
+FROM node:20-slim
+
+WORKDIR /app
+
+# Install npx and the MCP inspector
+RUN npm install -g @modelcontextprotocol/inspector
+
+# Expose the default ports for MCP Inspector
+# 6274 - Web UI
+# 6277 - Proxy server
+EXPOSE 6274 6277
+
+# Run the MCP Inspector with environment variable to bind to all interfaces
+ENV HOST=0.0.0.0
+CMD ["npx", "@modelcontextprotocol/inspector"]
