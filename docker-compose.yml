@@ -11,7 +11,7 @@ services:
     environment:
       - PYTHONUNBUFFERED=1
     networks:
-      - mcp-network
+      - docling-network
 
   mcp-inspector:
     build:
@@ -25,8 +25,9 @@ services:
     depends_on:
       - docling-mcp
     networks:
-      - mcp-network
+      - docling-network
 
 networks:
-  mcp-network:
+  docling-network:
     driver: bridge
+    name: docling-network
