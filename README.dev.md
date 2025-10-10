@@ -174,23 +174,22 @@ uv sync --all-extras --group apple-dev
 
 After installing dependencies, you can run the Docling MCP server in development mode:
 
-**Using uv run (recommended):**
+**Run app without uv:**
+```bash
+# Run with HTTP transport 
+docling-mcp-server --transport streamable-http
 
+# Show all available options
+docling-mcp-server --help
+
+# Run with python module
+python -m docling_mcp.servers.mcp_server --transport streamable-http
+```
+
+**Or using uv run (recommended):**
 ```bash
 # Run with stdio transport (default, for Claude Desktop)
 uv run docling-mcp-server
-
-# Run with SSE transport (for Llama Stack)
-uv run docling-mcp-server --transport sse
-
-# Run with HTTP transport (for Docker/web clients)
-uv run docling-mcp-server --transport streamable-http --host 0.0.0.0 --port 8000
-
-# Load only specific tool groups
-uv run docling-mcp-server conversion generation
-
-# Show all available options
-uv run docling-mcp-server --help
 ```
 
 **Available tool groups:**
@@ -299,6 +298,42 @@ Once connected, you can:
 3. Click "Call Tool"
 4. Inspect the returned `document_key`
 5. Use the key with other tools like `export_docling_document_to_markdown`
+
+---
+
+## Working with Files in Docker Container
+
+When developing locally with Docker and using the `convert_document_into_docling_document` tool, you may need to copy files into the running container to process them.
+
+### Adding Files to Docker Container
+
+To copy a file from your local filesystem into the Docker container:
+
+```bash
+docker cp "/path/to/your/file.pdf" docling-mcp-server:/app/
+```
+
+**Example:**
+```bash
+docker cp "/Users/username/Documents/sample.pdf" docling-mcp-server:/app/
+```
+
+This copies the file to the `/app/` directory inside the container.
+
+### File Paths Inside Docker
+
+Once copied, files are accessible using their absolute path inside the container:
+
+```
+/app/filename.ext
+```
+
+**Example:**
+- Local file: `/Users/username/Documents/sample.pdf`
+- After copying: `/app/sample.pdf`
+- Use in tool: `convert_document_into_docling_document` with `source="/app/sample.pdf"`
+
+**Note:** This is particularly useful during local development when testing document processing with the `convert_document_into_docling_document` tool, as it requires file paths that exist within the container's filesystem.
 
 ---
 
@@ -432,22 +467,6 @@ async def test_my_tool(mcp_client):
     assert response.content[0].text == '{"result": "Processed: test"}'
 ```
 
-### Running Tests
-
-```bash
-# Run all tests
-uv run pytest
-
-# Run specific test file
-uv run pytest tests/test_conversion_tools.py
-
-# Run with coverage
-uv run pytest --cov=docling_mcp --cov-report=html
-
-# Run specific test
-uv run pytest tests/test_conversion_tools.py::test_convert_document
-```
-
 ---
 
 ## Code Style and Quality
@@ -490,193 +509,4 @@ uv run ruff format .
 # Check formatting without modifying
 uv run ruff format --check .
 ```
-
-### MyPy (Type Checking)
-
-We use [MyPy](https://mypy.readthedocs.io) for static type checking:
-
-```bash
-# Run type checking
-uv run mypy docling_mcp
-
-# Run on specific file
-uv run mypy docling_mcp/tools/conversion.py
-```
-
-### Code Style Guidelines
-
-Follow these conventions:
-- **Line length**: 88 characters (Black-compatible)
-- **Imports**: Sorted using isort (integrated in Ruff)
-- **Docstrings**: Google style
-- **Type hints**: Required for all function signatures
-- **Naming**:
-  - `snake_case` for functions and variables
-  - `PascalCase` for classes
-  - `UPPER_CASE` for constants
-
----
-
-## Testing
-
-### Test Structure
-
-Tests are located in the `tests/` directory:
-- `conftest.py` - Shared fixtures and utilities
-- `test_*.py` - Test modules matching source modules
-
-### Writing Tests
-
-Use the `mcp_client` fixture to test tools:
-
-```python
-import pytest
-
-@pytest.mark.asyncio
-async def test_my_tool(mcp_client):
-    # List available tools
-    tools = await mcp_client.list_tools()
-    assert "my_tool" in tools
-    
-    # Call the tool
-    response = await mcp_client.call_tool(
-        "my_tool",
-        {"input_param": "test"}
-    )
-    
-    # Assert response
-    assert response.isError is False
-    # Parse JSON response
-    import json
-    result = json.loads(response.content[0].text)
-    assert result["result"] == "Processed: test"
-```
-
-### Running Tests with Coverage
-
-```bash
-# Generate HTML coverage report
-uv run pytest --cov=docling_mcp --cov-report=html
-
-# Open the report
-open htmlcov/index.html  # macOS
-xdg-open htmlcov/index.html  # Linux
-```
-
----
-
-## Debugging
-
-### Using Python Debugger
-
-Add breakpoints in your code:
-
-```python
-import pdb; pdb.set_trace()  # Classic
-breakpoint()  # Python 3.7+
-```
-
-### Logging
-
-Use the project logger for debugging:
-
-```python
-from docling_mcp.logger import setup_logger
-
-logger = setup_logger()
-logger.debug("Debug message")
-logger.info("Info message")
-logger.warning("Warning message")
-logger.error("Error message")
-```
-
-### Debugging with MCP Inspector
-
-1. Run server with verbose logging
-2. Use MCP Inspector to call tools
-3. Check server logs for detailed output
-4. Inspect request/response in Inspector UI
-
-### VS Code Debugging
-
-Create `.vscode/launch.json`:
-
-```json
-{
-  "version": "0.2.0",
-  "configurations": [
-    {
-      "name": "Docling MCP Server",
-      "type": "python",
-      "request": "launch",
-      "module": "docling_mcp.servers.mcp_server",
-      "args": ["--transport", "streamable-http"],
-      "console": "integratedTerminal",
-      "justMyCode": false
-    }
-  ]
-}
-```
-
----
-
-## Building and Publishing
-
-### Building the Package
-
-```bash
-# Build distribution files
-uv build
-
-# This creates:
-# - dist/docling_mcp-*.whl (wheel)
-# - dist/docling_mcp-*.tar.gz (source)
-```
-
-### Local Installation
-
-Test the package locally:
-
-```bash
-# Install in editable mode
-uv pip install -e .
-
-# Install from wheel
-uv pip install dist/docling_mcp-*.whl
-```
-
-### Publishing to PyPI
-
-```bash
-# Install twine
-uv pip install twine
-
-# Upload to Test PyPI
-uv run twine upload --repository testpypi dist/*
-
-# Upload to PyPI
-uv run twine upload dist/*
-```
-
----
-
-## Additional Resources
-
-- **Main Documentation**: [README.md](./README.md)
-- **Contributing Guidelines**: [CONTRIBUTING.md](./CONTRIBUTING.md)
-- **Docker Setup**: [DOCKER.md](./DOCKER.md)
-- **Integrations**: [docs/integrations/](./docs/integrations/)
-- **Examples**: [examples/](./examples/)
-- **MCP Specification**: https://spec.modelcontextprotocol.io/
-- **Docling Documentation**: https://docling-project.github.io/docling/
-
-## Getting Help
-
-- **Issues**: [GitHub Issues](https://github.com/docling-project/docling-mcp/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/docling-project/docling-mcp/discussions)
-- **Community**: [LF AI & Data](https://lfaidata.foundation/projects/)
-
----
-
-**Happy coding! 🚀**
 
