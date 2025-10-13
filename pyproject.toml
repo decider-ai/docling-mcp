@@ -119,7 +119,7 @@ include = ["docling_mcp"]
 line-length = 88
 indent-width = 4
 respect-gitignore = true
-include = ["docling_mcp", "tests"]
+include = ["docling_mcp/**/*.py", "tests/**/*.py"]
 
 [tool.ruff.format]
 skip-magic-trailing-comma = false
