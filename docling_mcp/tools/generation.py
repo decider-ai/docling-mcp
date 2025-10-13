@@ -28,7 +28,15 @@ from docling_core.types.io import DocumentStream
 
 from docling_mcp.docling_cache import get_cache_dir
 from docling_mcp.logger import setup_logger
-from docling_mcp.shared import local_document_cache, local_stack_cache, mcp
+from docling_mcp.schemas import DocumentMetadata
+from docling_mcp.shared import (
+    local_document_cache,
+    local_document_metadata,
+    local_stack_cache,
+    mcp,
+)
+from docling_mcp.utils.date import get_created_at_date
+from docling_mcp.utils.utils import get_document_metadata
 
 # Create a default project logger
 logger = setup_logger()
@@ -72,6 +80,10 @@ def create_new_docling_document(
     local_document_cache[document_key] = doc
     local_stack_cache[document_key] = [item]
 
+    local_document_metadata[document_key] = DocumentMetadata(
+        created_at=get_created_at_date(), source=None, type=None
+    )
+
     return NewDoclingDocumentOutput(document_key, prompt)
 
 
@@ -85,6 +97,10 @@ class ExportDocumentMarkdownOutput:
     ]
     markdown: Annotated[
         str, Field(description="The representation of the document in markdown format.")
+    ]
+    document_metadata: Annotated[
+        dict[str, Any],
+        Field(description="The document metadata."),
     ]
 
 
@@ -116,7 +132,11 @@ def export_docling_document_to_markdown(
     if max_size:
         markdown = markdown[:max_size]
 
-    return ExportDocumentMarkdownOutput(document_key, markdown)
+    return ExportDocumentMarkdownOutput(
+        document_key,
+        markdown,
+        document_metadata=get_document_metadata(document_key),
+    )
 
 
 @dataclass
@@ -130,6 +150,10 @@ class ExportDocumentMarkdownJsonOutput:
     document_data: Annotated[
         dict[str, Any],
         Field(description="The representation of the document in json format."),
+    ]
+    document_metadata: Annotated[
+        dict[str, Any],
+        Field(description="The document metadata"),
     ]
 
 
@@ -146,7 +170,24 @@ def export_docling_document_to_json(
     """Export a document from the local document cache to json format.
 
     This tool converts a Docling document that exists in the local cache into
-    a markdown formatted string, which can be used for display or further processing.
+    a structured JSON dictionary, which can be used for display or further processing.
+
+    The returned document_data.body.children field contains an ordered list of JSON
+    references to document items. Each child is represented as a JSON pointer reference
+    (e.g., {"$ref": "#/texts/0"}) that points to the actual item in the document.
+
+    Understanding document_data.body.children:
+    - The 'body.children' array contains the main content structure of the document.
+    - Each element is a JSON reference object with a "$ref" key pointing to an item.
+    - References follow the JSON Pointer format: "#/<item_type>/<index>".
+    - Common item types: texts, tables, pictures, groups.
+    - The order of children reflects the document's sequential structure.
+
+    Examples of references in body.children:
+    - {"$ref": "#/texts/0"} -> First text item in document.texts array
+    - {"$ref": "#/tables/0"} -> First table item in document.tables array
+    - {"$ref": "#/pictures/0"} -> First picture item in document.pictures array
+    - {"$ref": "#/groups/0"} -> First group item in document.groups array
     """
     if document_key not in local_document_cache:
         doc_keys = ", ".join(local_document_cache.keys())
@@ -157,7 +198,9 @@ def export_docling_document_to_json(
     document = local_document_cache[document_key]
 
     return ExportDocumentMarkdownJsonOutput(
-        document_key, document_data=document.export_to_dict()
+        document_key,
+        document_data=document.export_to_dict(),
+        document_metadata=get_document_metadata(document_key),
     )
 
 
