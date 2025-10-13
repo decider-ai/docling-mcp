@@ -28,7 +28,15 @@ from docling_core.types.io import DocumentStream
 
 from docling_mcp.docling_cache import get_cache_dir
 from docling_mcp.logger import setup_logger
-from docling_mcp.shared import local_document_cache, local_stack_cache, mcp
+from docling_mcp.schemas import DocumentMetadata
+from docling_mcp.shared import (
+    local_document_cache,
+    local_document_metadata,
+    local_stack_cache,
+    mcp,
+)
+from docling_mcp.utils.date import get_created_at_date
+from docling_mcp.utils.utils import get_document_metadata
 
 # Create a default project logger
 logger = setup_logger()
@@ -72,6 +80,10 @@ def create_new_docling_document(
     local_document_cache[document_key] = doc
     local_stack_cache[document_key] = [item]
 
+    local_document_metadata[document_key] = DocumentMetadata(
+        created_at=get_created_at_date(), source=None, type=None
+    )
+
     return NewDoclingDocumentOutput(document_key, prompt)
 
 
@@ -85,6 +97,10 @@ class ExportDocumentMarkdownOutput:
     ]
     markdown: Annotated[
         str, Field(description="The representation of the document in markdown format.")
+    ]
+    document_metadata: Annotated[
+        dict[str, Any],
+        Field(description="The document metadata."),
     ]
 
 
@@ -116,7 +132,11 @@ def export_docling_document_to_markdown(
     if max_size:
         markdown = markdown[:max_size]
 
-    return ExportDocumentMarkdownOutput(document_key, markdown)
+    return ExportDocumentMarkdownOutput(
+        document_key,
+        markdown,
+        document_metadata=get_document_metadata(document_key),
+    )
 
 
 @dataclass
@@ -130,6 +150,10 @@ class ExportDocumentMarkdownJsonOutput:
     document_data: Annotated[
         dict[str, Any],
         Field(description="The representation of the document in json format."),
+    ]
+    document_metadata: Annotated[
+        dict[str, Any],
+        Field(description="The document metadata"),
     ]
 
 
@@ -157,7 +181,9 @@ def export_docling_document_to_json(
     document = local_document_cache[document_key]
 
     return ExportDocumentMarkdownJsonOutput(
-        document_key, document_data=document.export_to_dict()
+        document_key,
+        document_data=document.export_to_dict(),
+        document_metadata=get_document_metadata(document_key),
     )
 
 

@@ -34,8 +34,15 @@ from docling_core.types.doc.labels import (
 
 from docling_mcp.docling_cache import get_cache_key
 from docling_mcp.logger import setup_logger
+from docling_mcp.schemas import DocumentMetadata
 from docling_mcp.settings.conversion import settings
-from docling_mcp.shared import local_document_cache, local_stack_cache, mcp
+from docling_mcp.shared import (
+    local_document_cache,
+    local_document_metadata,
+    local_stack_cache,
+    mcp,
+)
+from docling_mcp.utils.date import get_created_at_date
 
 # Create a default project logger
 logger = setup_logger()
@@ -188,6 +195,12 @@ def convert_document_into_docling_document(
 
         local_document_cache[cache_key] = result.document
 
+        local_document_metadata[cache_key] = DocumentMetadata(
+            created_at=get_created_at_date(),
+            source=source,
+            type=result.document.origin.mimetype,
+        )
+
         item = result.document.add_text(
             label=DocItemLabel.TEXT,
             text=f"source: {source}",
@@ -275,6 +288,12 @@ async def convert_directory_files_into_docling_document(
                     raise McpError(ErrorData(code=INTERNAL_ERROR, message=error_msg))
 
                 local_document_cache[cache_key] = result.document
+
+                local_document_metadata[cache_key] = DocumentMetadata(
+                    created_at=get_created_at_date(),
+                    source=source,
+                    type=result.document.origin.mimetype,
+                )
 
                 item = result.document.add_text(
                     label=DocItemLabel.TEXT,
