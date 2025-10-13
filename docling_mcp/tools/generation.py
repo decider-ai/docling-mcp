@@ -170,7 +170,24 @@ def export_docling_document_to_json(
     """Export a document from the local document cache to json format.
 
     This tool converts a Docling document that exists in the local cache into
-    a markdown formatted string, which can be used for display or further processing.
+    a structured JSON dictionary, which can be used for display or further processing.
+
+    The returned document_data.body.children field contains an ordered list of JSON
+    references to document items. Each child is represented as a JSON pointer reference
+    (e.g., {"$ref": "#/texts/0"}) that points to the actual item in the document.
+
+    Understanding document_data.body.children:
+    - The 'body.children' array contains the main content structure of the document.
+    - Each element is a JSON reference object with a "$ref" key pointing to an item.
+    - References follow the JSON Pointer format: "#/<item_type>/<index>".
+    - Common item types: texts, tables, pictures, groups.
+    - The order of children reflects the document's sequential structure.
+
+    Examples of references in body.children:
+    - {"$ref": "#/texts/0"} -> First text item in document.texts array
+    - {"$ref": "#/tables/0"} -> First table item in document.tables array
+    - {"$ref": "#/pictures/0"} -> First picture item in document.pictures array
+    - {"$ref": "#/groups/0"} -> First group item in document.groups array
     """
     if document_key not in local_document_cache:
         doc_keys = ", ".join(local_document_cache.keys())
