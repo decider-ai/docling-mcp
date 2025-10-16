@@ -205,6 +205,57 @@ def export_docling_document_to_json(
 
 
 @dataclass
+class ExportDocumentHtmlOutput:
+    """Output of the export_docling_document_to_html tool."""
+
+    document_key: Annotated[
+        str,
+        Field(description="The unique identifier of the document in the local cache."),
+    ]
+    html: Annotated[
+        str,
+        Field(description="The representation of the document in HTML format."),
+    ]
+    document_metadata: Annotated[
+        dict[str, Any],
+        Field(description="The document metadata"),
+    ]
+
+
+@mcp.tool(
+    title="Export Docling document to HTML format",
+    annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False),
+)
+def export_docling_document_to_html(
+    document_key: Annotated[
+        str,
+        Field(description="The unique identifier of the document in the local cache."),
+    ],
+) -> ExportDocumentHtmlOutput:
+    """Export a document from the local document cache to HTML format.
+
+    This tool converts a Docling document that exists in the local cache into
+    an HTML string with embedded images, which can be used for display or further processing.
+
+    The HTML output includes all document content with images embedded as base64-encoded
+    data URIs, making it a self-contained representation of the document.
+    """
+    if document_key not in local_document_cache:
+        doc_keys = ", ".join(local_document_cache.keys())
+        raise ValueError(
+            f"document-key: {document_key} is not found. Existing document-keys are: {doc_keys}"
+        )
+
+    document = local_document_cache[document_key]
+
+    return ExportDocumentHtmlOutput(
+        document_key,
+        html=document.export_to_html(image_mode="embedded"),
+        document_metadata=get_document_metadata(document_key),
+    )
+
+
+@dataclass
 class SaveDocumentOutput:
     """Output of the save_docling_document tool."""
 
