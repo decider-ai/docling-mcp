@@ -17,7 +17,6 @@ from docling.datamodel.pipeline_options import (
     VlmPipelineOptions,
     granite_picture_description,
 )
-from docling.datamodel.vlm_model_specs import GRANITEDOCLING_TRANSFORMERS
 from docling.document_converter import (
     DocumentConverter,
     FormatOption,
@@ -43,6 +42,7 @@ from docling_mcp.shared import (
     mcp,
 )
 from docling_mcp.utils.date import get_created_at_date
+from docling_mcp.utils.utils import get_document_type, get_vlm_model_for_platform
 
 # Create a default project logger
 logger = setup_logger()
@@ -112,14 +112,18 @@ def _get_converter() -> DocumentConverter:
     )
 
     pipeline_options.table_structure_options.do_cell_matching = True
+    pipeline_options.generate_page_images = settings.keep_images
+
+    # Automatically select the appropriate VLM model based on platform
+    # GRANITEDOCLING_MLX for macOS (optimized for Apple Silicon)
+    # GRANITEDOCLING_TRANSFORMERS for other platforms
+    vlm_model = get_vlm_model_for_platform()
+    logger.info(f"Using VLM model: {vlm_model}")
 
     vlm_opts = VlmPipelineOptions(
-        # For apple silicon use GRANITEDOCLING_MLX
-        # vlm_options=GRANITEDOCLING_MLX,
-        vlm_options=GRANITEDOCLING_TRANSFORMERS,
+        vlm_options=vlm_model,
         images_scale=2.0,
     )
-    pipeline_options.generate_page_images = settings.keep_images
 
     format_options: dict[InputFormat, FormatOption] = {
         InputFormat.PDF: PdfFormatOption(
@@ -198,7 +202,7 @@ def convert_document_into_docling_document(
         local_document_metadata[cache_key] = DocumentMetadata(
             created_at=get_created_at_date(),
             source=source,
-            type=result.document.origin.mimetype,
+            type=get_document_type(source),
         )
 
         item = result.document.add_text(
@@ -292,7 +296,7 @@ async def convert_directory_files_into_docling_document(
                 local_document_metadata[cache_key] = DocumentMetadata(
                     created_at=get_created_at_date(),
                     source=source,
-                    type=result.document.origin.mimetype,
+                    type=get_document_type(source),
                 )
 
                 item = result.document.add_text(

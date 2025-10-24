@@ -2,6 +2,10 @@
 
 This directory contains Docker Compose configuration for running the Docling MCP server along with the MCP Inspector.
 
+## Platform Compatibility
+
+⚠️ **Important for Apple Silicon (ARM64) Users**: The Docker containerized deployment is currently incompatible with ARM64 architectures due to limitations in the EasyOCR dependency. If you are running on Apple Silicon (M1/M2/M3) or other ARM64 systems, please install and run docling-mcp natively using the installation instructions in the main [README.md](README.md) instead of using Docker Compose.
+
 ## Quick Reference
 
 **Start Services:**
