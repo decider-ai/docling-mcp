@@ -14,6 +14,7 @@ from docling.datamodel.document import (
     ConversionResult,
 )
 from docling.document_converter import DocumentConverter
+from docling_core.types.doc.base import ImageRefMode
 from docling_core.types.doc.document import (
     ContentLayer,
     DoclingDocument,
@@ -250,7 +251,7 @@ def export_docling_document_to_html(
 
     return ExportDocumentHtmlOutput(
         document_key,
-        html=document.export_to_html(image_mode="embedded"),
+        html=document.export_to_html(image_mode=ImageRefMode.EMBEDDED),
         document_metadata=get_document_metadata(document_key),
     )
 
