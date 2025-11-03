@@ -117,6 +117,14 @@ def export_docling_document_to_markdown(
     max_size: Annotated[
         int | None, Field(description="The maximum number of characters to return.")
     ] = None,
+    export_tables: Annotated[
+        bool,
+        Field(description="Whether to enable tables in the markdown export."),
+    ] = True,
+    export_images: Annotated[
+        bool,
+        Field(description="Whether to enable images in the markdown export."),
+    ] = True,
 ) -> ExportDocumentMarkdownOutput:
     """Export a document from the local document cache to markdown format.
 
@@ -129,7 +137,21 @@ def export_docling_document_to_markdown(
             f"document-key: {document_key} is not found. Existing document-keys are: {doc_keys}"
         )
 
-    markdown = local_document_cache[document_key].export_to_markdown()
+    # Build export kwargs with label filtering if needed
+    export_kwargs = {}
+    if not export_tables or not export_images:
+        # Determine which content types to exclude from export
+        exclude_labels = []
+        if not export_tables:
+            exclude_labels.append(DocItemLabel.TABLE)
+        if not export_images:
+            exclude_labels.append(DocItemLabel.PICTURE)
+
+        # Create set of all labels except the excluded ones
+        included_labels = {label for label in DocItemLabel if label not in exclude_labels}
+        export_kwargs['labels'] = included_labels
+
+    markdown = local_document_cache[document_key].export_to_markdown(**export_kwargs)
     if max_size:
         markdown = markdown[:max_size]
 
