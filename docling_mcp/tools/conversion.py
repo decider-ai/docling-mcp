@@ -13,6 +13,7 @@ from pydantic import Field
 
 from docling.datamodel.base_models import InputFormat
 from docling.datamodel.pipeline_options import (
+    EasyOcrOptions,
     PdfPipelineOptions,
     VlmPipelineOptions,
     granite_picture_description,
@@ -113,6 +114,7 @@ def _get_converter() -> DocumentConverter:
 
     pipeline_options.table_structure_options.do_cell_matching = True
     pipeline_options.generate_page_images = settings.keep_images
+    pipeline_options.ocr_options = EasyOcrOptions(lang=["fr", "en"])
 
     # Automatically select the appropriate VLM model based on platform
     # GRANITEDOCLING_MLX for macOS (optimized for Apple Silicon)

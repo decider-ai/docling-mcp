@@ -43,6 +43,47 @@ from docling_mcp.utils.utils import get_document_metadata
 logger = setup_logger()
 
 
+def _build_label_filter(
+    exclude_tables: bool,
+    exclude_images: bool,
+    exclude_all_labels: bool,
+) -> dict[str, Any]:
+    """Build export kwargs with label filtering.
+
+    Args:
+        exclude_tables: Whether to exclude tables from export
+        exclude_images: Whether to exclude images from export
+        exclude_all_labels: Whether to only include tables and images (excluding all other labels)
+
+    Returns:
+        Dictionary with 'labels' key containing the set of labels to include, or empty dict if no filtering
+    """
+    export_kwargs = {}
+    if any([exclude_tables, exclude_images, exclude_all_labels]):
+        exclude_labels = []
+        if exclude_tables:
+            exclude_labels.append(DocItemLabel.TABLE)
+        if exclude_images:
+            exclude_labels.append(DocItemLabel.PICTURE)
+
+        if exclude_all_labels:
+            # Only include tables and images, excluding all other labels
+            included_labels = {
+                label
+                for label in [DocItemLabel.TABLE, DocItemLabel.PICTURE]
+                if label not in exclude_labels
+            }
+        else:
+            # Include all labels except the excluded ones
+            included_labels = {
+                label for label in DocItemLabel if label not in exclude_labels
+            }
+
+        export_kwargs["labels"] = included_labels
+
+    return export_kwargs
+
+
 @dataclass
 class NewDoclingDocumentOutput:
     """Output of the create_new_docling_document tool."""
@@ -117,14 +158,20 @@ def export_docling_document_to_markdown(
     max_size: Annotated[
         int | None, Field(description="The maximum number of characters to return.")
     ] = None,
-    export_tables: Annotated[
+    exclude_tables: Annotated[
         bool,
-        Field(description="Whether to enable tables in the markdown export."),
-    ] = True,
-    export_images: Annotated[
+        Field(description="Whether to exclude tables from the markdown export."),
+    ] = False,
+    exclude_images: Annotated[
         bool,
-        Field(description="Whether to enable images in the markdown export."),
-    ] = True,
+        Field(description="Whether to exclude images from the markdown export."),
+    ] = False,
+    exclude_all_labels: Annotated[
+        bool,
+        Field(
+            description="Whether to only include tables and images in the markdown export, excluding all other content labels."
+        ),
+    ] = False,
 ) -> ExportDocumentMarkdownOutput:
     """Export a document from the local document cache to markdown format.
 
@@ -138,20 +185,14 @@ def export_docling_document_to_markdown(
         )
 
     # Build export kwargs with label filtering if needed
-    export_kwargs = {}
-    if not export_tables or not export_images:
-        # Determine which content types to exclude from export
-        exclude_labels = []
-        if not export_tables:
-            exclude_labels.append(DocItemLabel.TABLE)
-        if not export_images:
-            exclude_labels.append(DocItemLabel.PICTURE)
+    export_kwargs = _build_label_filter(
+        exclude_tables, exclude_images, exclude_all_labels
+    )
 
-        # Create set of all labels except the excluded ones
-        included_labels = {label for label in DocItemLabel if label not in exclude_labels}
-        export_kwargs['labels'] = included_labels
+    markdown = local_document_cache[document_key].export_to_markdown(
+        image_mode=ImageRefMode.EMBEDDED, **export_kwargs
+    )
 
-    markdown = local_document_cache[document_key].export_to_markdown(**export_kwargs)
     if max_size:
         markdown = markdown[:max_size]
 
@@ -254,6 +295,20 @@ def export_docling_document_to_html(
         str,
         Field(description="The unique identifier of the document in the local cache."),
     ],
+    exclude_tables: Annotated[
+        bool,
+        Field(description="Whether to exclude tables from the HTML export."),
+    ] = False,
+    exclude_images: Annotated[
+        bool,
+        Field(description="Whether to exclude images from the HTML export."),
+    ] = False,
+    exclude_all_labels: Annotated[
+        bool,
+        Field(
+            description="Whether to only include tables and images in the HTML export, excluding all other content labels."
+        ),
+    ] = False,
 ) -> ExportDocumentHtmlOutput:
     """Export a document from the local document cache to HTML format.
 
@@ -271,9 +326,14 @@ def export_docling_document_to_html(
 
     document = local_document_cache[document_key]
 
+    # Build export kwargs with label filtering if needed
+    export_kwargs = _build_label_filter(
+        exclude_tables, exclude_images, exclude_all_labels
+    )
+
     return ExportDocumentHtmlOutput(
         document_key,
-        html=document.export_to_html(image_mode=ImageRefMode.EMBEDDED),
+        html=document.export_to_html(image_mode=ImageRefMode.EMBEDDED, **export_kwargs),
         document_metadata=get_document_metadata(document_key),
     )
 
